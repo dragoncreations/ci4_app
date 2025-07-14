@@ -1,0 +1,17 @@
+services:
+  nginx:
+    build: ./nginx/
+    ports:
+      - 80:80
+    volumes:
+      - ./src/:/var/www/html/
+
+  php:
+    build: ./php/
+    expose:
+      - 9000
+    volumes:
+      - ./src/:/var/www/html/
+
+  redis:
+    image: redis:latest
