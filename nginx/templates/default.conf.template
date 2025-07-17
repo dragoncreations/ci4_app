@@ -71,6 +71,7 @@ server {
         fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
         #fastcgi_param  SCRIPT_FILENAME  /var/www/html/public$fastcgi_script_name;
         fastcgi_param  PATH_INFO $fastcgi_path_info;
+		fastcgi_param  CI_ENVIRONMENT ${CI_ENVIRONMENT};
         include        fastcgi_params;
 	}
 
