@@ -29,4 +29,12 @@ class Services extends BaseService
      *     return new \CodeIgniter\Example();
      * }
      */
+
+    public static function predis()
+    {
+        return new \Predis\Client([
+            'host' => 'redis',
+            'persistent' => true,
+        ]);
+    }
 }
