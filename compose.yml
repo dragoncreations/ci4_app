@@ -1,7 +1,7 @@
 services:
-  nginx:
+  app_prod:
     image: nginx:latest
-    container_name: nginx
+    container_name: app_prod
     depends_on:
       - php-fpm
     ports:
@@ -10,8 +10,21 @@ services:
       - ./src/:/var/www/html/
       - ./nginx/templates:/etc/nginx/templates
       - sock:/sock
-    env_file:
-      - ./.env
+    environment:
+      - CI_ENVIRONMENT=production
+  app_dev:
+    image: nginx:latest
+    container_name: app_dev
+    depends_on:
+      - php-fpm
+    ports:
+      - 81:80
+    volumes:
+      - ./src/:/var/www/html/
+      - ./nginx/templates:/etc/nginx/templates
+      - sock:/sock
+    environment:
+      - CI_ENVIRONMENT=development
 
   php-fpm:
     build: ./php/

@@ -40,6 +40,7 @@ class Services extends BaseService
         return new Client([
             'host' => 'redis',
             'persistent' => true,
+            'database' => 'production' === ENVIRONMENT ? 0 : 1
         ]);
     }
 }
