@@ -26,15 +26,15 @@ class Coaster extends Controller
         }
 
         try {
-            $client = service('predis');
+            $predis = service('predis');
 
-            if(!$client->exists("coasterId")){
-                $client->set('coasterId', 1);
+            if (!$predis->exists("coasterId")) {
+                $predis->set('coasterId', 1);
             }
 
-            $coasterId = $client->get("coasterId");
+            $coasterId = $predis->get("coasterId");
 
-            $client->hmset("coaster_" . $coasterId, [
+            $predis->hmset("coaster_" . $coasterId, [
                 "id" => $coasterId,
                 "staff" => $data["liczba_personelu"],
                 "customers" => $data["liczba_klientow"],
@@ -43,7 +43,12 @@ class Coaster extends Controller
                 "to" => $data["godziny_do"],
             ]);
 
-            $client->incr("coasterId");
+            $predis->incr("coasterId");
+
+            $predis->publish("coasters", json_encode([
+                "action" => "add_coaster",
+                "coasterId" => $coasterId,
+            ]));
 
             return $this->respondCreated(["coasterId" => $coasterId]);
         } catch (\Exception $e) {
@@ -54,9 +59,9 @@ class Coaster extends Controller
     public function add(?int $coasterId = null)
     {
         try {
-            $client = service('predis'); 
+            $predis = service('predis');
 
-            if(!$client->exists('coaster_' . $coasterId)){
+            if (!$predis->exists('coaster_' . $coasterId)) {
                 return $this->failNotFound("Kolejka ID: $coasterId nie istnieje");
             }
 
@@ -69,24 +74,29 @@ class Coaster extends Controller
 
             if (!$this->validateData($data, $rule)) {
                 return $this->failValidationErrors($this->validator->getErrors());
-            }       
-
-            if(!$client->exists("wagonId")){
-                $client->set('wagonId', 1);
             }
 
-            $wagonId = $client->get("wagonId");
+            if (!$predis->exists("wagonId")) {
+                $predis->set('wagonId', 1);
+            }
 
-            $client->hmset("wagon_" . $wagonId,  [
+            $wagonId = $predis->get("wagonId");
+
+            $predis->hmset("wagon_" . $wagonId,  [
                 "id" => $wagonId,
                 "coasterId" => $coasterId,
                 "seats" => $data["ilosc_miejsc"],
                 "speed" => $data["predkosc_wagonu"],
             ]);
 
-            $client->sadd("coaster_" . $coasterId . "_wagons", $wagonId);
+            $predis->sadd("coaster_" . $coasterId . "_wagons", $wagonId);
 
-            $client->incr("wagonId");
+            $predis->incr("wagonId");
+
+            $predis->publish("coasters", json_encode([
+                "action" => "add_wagon",
+                "wagonId" => $wagonId,
+            ]));
 
             return $this->respondCreated(["wagonId" => $wagonId]);
         } catch (\Exception $e) {
@@ -97,9 +107,9 @@ class Coaster extends Controller
     public function update(?int $coasterId = null)
     {
         try {
-            $client = service('predis'); 
+            $predis = service('predis');
 
-            if(!$client->exists('coaster_' . $coasterId)){
+            if (!$predis->exists('coaster_' . $coasterId)) {
                 return $this->failNotFound("Kolejka ID: $coasterId nie istnieje");
             }
 
@@ -116,12 +126,17 @@ class Coaster extends Controller
                 return $this->failValidationErrors($this->validator->getErrors());
             }
 
-            $client->hmset("coaster_" . $coasterId, [
+            $predis->hmset("coaster_" . $coasterId, [
                 "staff" => $data["liczba_personelu"],
                 "customers" => $data["liczba_klientow"],
                 "from" => $data["godziny_od"],
                 "to" => $data["godziny_do"],
             ]);
+
+            $predis->publish("coasters", json_encode([
+                "action" => "update_coaster",
+                "coasterId" => $coasterId,
+            ]));
 
             return $this->respondCreated(["coasterId" => $coasterId]);
         } catch (\Exception $e) {
@@ -132,23 +147,28 @@ class Coaster extends Controller
     public function delete(?int $coasterId = null, ?int $wagonId = null)
     {
         try {
-            $client = service('predis'); 
+            $predis = service('predis');
 
-            if(!$client->exists('coaster_' . $coasterId)){
+            if (!$predis->exists('coaster_' . $coasterId)) {
                 return $this->failNotFound("Kolejka ID: $coasterId nie istnieje");
             }
 
-            if(!$client->exists('wagon_' . $wagonId)){
+            if (!$predis->exists('wagon_' . $wagonId)) {
                 return $this->failNotFound("Wagon ID: $wagonId nie istnieje");
             }
 
-            if(0 === $client->sismember("coaster_" . $coasterId . "_wagons", $wagonId)){
+            if (0 === $predis->sismember("coaster_" . $coasterId . "_wagons", $wagonId)) {
                 return $this->failNotFound("Wagon ID: $wagonId nie znajduje się w kolejce ID: $coasterId");
             }
 
-            $client->srem("coaster_" . $coasterId . "_wagons", $wagonId);
+            $predis->srem("coaster_" . $coasterId . "_wagons", $wagonId);
 
-            $client->del("wagon_" . $wagonId);
+            $predis->del("wagon_" . $wagonId);
+
+            $predis->publish("coasters", json_encode([
+                "action" => "delete_wagon",
+                "wagonId" => $wagonId,
+            ]));
 
             return $this->respondDeleted(["wagonId" => $wagonId]);
         } catch (\Exception $e) {
