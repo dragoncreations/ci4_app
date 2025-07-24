@@ -3,6 +3,7 @@
 namespace Config;
 
 use CodeIgniter\Config\BaseService;
+use Predis\Client;
 
 /**
  * Services Configuration file.
@@ -30,9 +31,13 @@ class Services extends BaseService
      * }
      */
 
+    /** 
+     * Returns a shared instance of the Redis client.
+     * 
+     */
     public static function predis()
     {
-        return new \Predis\Client([
+        return new Client([
             'host' => 'redis',
             'persistent' => true,
         ]);
