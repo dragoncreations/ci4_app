@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use CodeIgniter\HTTP\ResponseInterface;
 use CodeIgniter\API\ResponseTrait;
 use CodeIgniter\Controller;
 
@@ -9,7 +10,17 @@ class Coaster extends Controller
 {
     use ResponseTrait;
 
-    public function create()
+    private $predis;
+
+    /**
+     * Constructor.
+     */
+    public function __construct()
+    {
+        $this->predis = service('predis');
+    }
+
+    public function create(): ResponseInterface
     {
         $data = $this->request->getJSON(true);
 
@@ -26,15 +37,13 @@ class Coaster extends Controller
         }
 
         try {
-            $predis = service('predis');
-
-            if (!$predis->exists("coasterId")) {
-                $predis->set('coasterId', 1);
+            if (!$this->predis->exists("coasterId")) {
+                $this->predis->set('coasterId', 1);
             }
 
-            $coasterId = $predis->get("coasterId");
+            $coasterId = $this->predis->get("coasterId");
 
-            $predis->hmset("coaster_" . $coasterId, [
+            $this->predis->hmset("coaster_" . $coasterId, [
                 "id" => $coasterId,
                 "staff" => $data["liczba_personelu"],
                 "customers" => $data["liczba_klientow"],
@@ -43,9 +52,9 @@ class Coaster extends Controller
                 "to" => $data["godziny_do"],
             ]);
 
-            $predis->incr("coasterId");
+            $this->predis->incr("coasterId");
 
-            $predis->publish("coasters", json_encode([
+            $this->predis->publish("coasters_" . ENVIRONMENT, json_encode([
                 "action" => "add_coaster",
                 "coasterId" => $coasterId,
             ]));
@@ -56,12 +65,10 @@ class Coaster extends Controller
         }
     }
 
-    public function add(?int $coasterId = null)
+    public function add(?int $coasterId = null): ResponseInterface
     {
         try {
-            $predis = service('predis');
-
-            if (!$predis->exists('coaster_' . $coasterId)) {
+            if (!$this->predis->exists('coaster_' . $coasterId)) {
                 return $this->failNotFound("Kolejka ID: $coasterId nie istnieje");
             }
 
@@ -76,24 +83,24 @@ class Coaster extends Controller
                 return $this->failValidationErrors($this->validator->getErrors());
             }
 
-            if (!$predis->exists("wagonId")) {
-                $predis->set('wagonId', 1);
+            if (!$this->predis->exists("wagonId")) {
+                $this->predis->set('wagonId', 1);
             }
 
-            $wagonId = $predis->get("wagonId");
+            $wagonId = $this->predis->get("wagonId");
 
-            $predis->hmset("wagon_" . $wagonId,  [
+            $this->predis->hmset("wagon_" . $wagonId,  [
                 "id" => $wagonId,
                 "coasterId" => $coasterId,
                 "seats" => $data["ilosc_miejsc"],
                 "speed" => $data["predkosc_wagonu"],
             ]);
 
-            $predis->sadd("coaster_" . $coasterId . "_wagons", $wagonId);
+            $this->predis->sadd("coaster_" . $coasterId . "_wagons", $wagonId);
 
-            $predis->incr("wagonId");
+            $this->predis->incr("wagonId");
 
-            $predis->publish("coasters", json_encode([
+            $this->predis->publish("coasters_" . ENVIRONMENT, json_encode([
                 "action" => "add_wagon",
                 "wagonId" => $wagonId,
             ]));
@@ -104,12 +111,10 @@ class Coaster extends Controller
         }
     }
 
-    public function update(?int $coasterId = null)
+    public function update(?int $coasterId = null): ResponseInterface
     {
         try {
-            $predis = service('predis');
-
-            if (!$predis->exists('coaster_' . $coasterId)) {
+            if (!$this->predis->exists('coaster_' . $coasterId)) {
                 return $this->failNotFound("Kolejka ID: $coasterId nie istnieje");
             }
 
@@ -126,14 +131,14 @@ class Coaster extends Controller
                 return $this->failValidationErrors($this->validator->getErrors());
             }
 
-            $predis->hmset("coaster_" . $coasterId, [
+            $this->predis->hmset("coaster_" . $coasterId, [
                 "staff" => $data["liczba_personelu"],
                 "customers" => $data["liczba_klientow"],
                 "from" => $data["godziny_od"],
                 "to" => $data["godziny_do"],
             ]);
 
-            $predis->publish("coasters", json_encode([
+            $this->predis->publish("coasters_" . ENVIRONMENT, json_encode([
                 "action" => "update_coaster",
                 "coasterId" => $coasterId,
             ]));
@@ -144,28 +149,26 @@ class Coaster extends Controller
         }
     }
 
-    public function delete(?int $coasterId = null, ?int $wagonId = null)
+    public function delete(?int $coasterId = null, ?int $wagonId = null): ResponseInterface
     {
         try {
-            $predis = service('predis');
-
-            if (!$predis->exists('coaster_' . $coasterId)) {
+            if (!$this->predis->exists('coaster_' . $coasterId)) {
                 return $this->failNotFound("Kolejka ID: $coasterId nie istnieje");
             }
 
-            if (!$predis->exists('wagon_' . $wagonId)) {
+            if (!$this->predis->exists('wagon_' . $wagonId)) {
                 return $this->failNotFound("Wagon ID: $wagonId nie istnieje");
             }
 
-            if (0 === $predis->sismember("coaster_" . $coasterId . "_wagons", $wagonId)) {
+            if (0 === $this->predis->sismember("coaster_" . $coasterId . "_wagons", $wagonId)) {
                 return $this->failNotFound("Wagon ID: $wagonId nie znajduje się w kolejce ID: $coasterId");
             }
 
-            $predis->srem("coaster_" . $coasterId . "_wagons", $wagonId);
+            $this->predis->srem("coaster_" . $coasterId . "_wagons", $wagonId);
 
-            $predis->del("wagon_" . $wagonId);
+            $this->predis->del("wagon_" . $wagonId);
 
-            $predis->publish("coasters", json_encode([
+            $this->predis->publish("coasters_" . ENVIRONMENT, json_encode([
                 "action" => "delete_wagon",
                 "wagonId" => $wagonId,
             ]));
