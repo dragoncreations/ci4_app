@@ -28,7 +28,7 @@ class Monitoring
     private Statistics $statistics;
 
     /**
-     * Constructor to initialize the Redis client and set the channel.
+     * Constructor
      *
      * @param string $environment The environment (e.g., production, development).
      * @param string $channel The channel to subscribe to.
