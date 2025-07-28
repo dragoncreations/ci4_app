@@ -11,6 +11,7 @@
     },
     "require": {
         "php": "^8.1",
+        "clue/redis-react": "^3@dev",
         "codeigniter4/framework": "^4.0",
         "predis/predis": "^3.0"
     },

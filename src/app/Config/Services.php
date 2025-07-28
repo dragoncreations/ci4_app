@@ -4,6 +4,7 @@ namespace Config;
 
 use CodeIgniter\Config\BaseService;
 use Predis\Client;
+use Clue\React\Redis\RedisClient;
 
 /**
  * Services Configuration file.
@@ -33,14 +34,21 @@ class Services extends BaseService
 
     /** 
      * Returns a shared instance of the Redis client.
-     * 
      */
-    public static function predis()
+    public static function predis(): Client
     {
         return new Client([
             'host' => 'redis',
             'persistent' => true,
             'database' => 'production' === ENVIRONMENT ? 0 : 1
         ]);
+    }
+
+    /**
+     * Returns a shared instance of the Redis client.
+     */
+    public static function redis(): RedisClient
+    {
+        return new RedisClient(getenv('REDIS_URI') ?: 'localhost:6379');
     }
 }
