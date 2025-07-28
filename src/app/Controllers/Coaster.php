@@ -10,6 +10,14 @@ class Coaster extends Controller
 {
     use ResponseTrait;
 
+    /**
+     * Actions
+     */
+    public const string ACTION_ADD_COASTER = 'add_coaster';
+    public const string ACTION_ADD_WAGON = 'add_wagon';
+    public const string ACTION_UPDATE_COASTER = 'update_coaster';
+    public const string ACTION_DELETE_WAGON = 'delete_wagon';
+
     private $predis;
 
     /**
@@ -25,9 +33,9 @@ class Coaster extends Controller
         $data = $this->request->getJSON(true);
 
         $rule = [
-            'liczba_personelu' => 'required|integer',
-            'liczba_klientow' => 'required|integer',
-            'dl_trasy' => 'required|integer',
+            'liczba_personelu' => 'required|integer|greater_than[0]',
+            'liczba_klientow' => 'required|integer|greater_than[0]',
+            'dl_trasy' => 'required|integer|greater_than[0]',
             'godziny_od' => 'required|string|regex_match[/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/]',
             'godziny_do' => 'required|string|regex_match[/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/]',
         ];
@@ -43,11 +51,11 @@ class Coaster extends Controller
 
             $coasterId = $this->predis->get("coasterId");
 
-            $this->predis->hmset("coaster_" . $coasterId, [
+            $this->predis->hmset("coaster:" . $coasterId, [
                 "id" => $coasterId,
                 "staff" => $data["liczba_personelu"],
                 "customers" => $data["liczba_klientow"],
-                "route_length" => $data["dl_trasy"],
+                "distance" => $data["dl_trasy"],
                 "from" => $data["godziny_od"],
                 "to" => $data["godziny_do"],
             ]);
@@ -55,7 +63,7 @@ class Coaster extends Controller
             $this->predis->incr("coasterId");
 
             $this->predis->publish("coasters_" . ENVIRONMENT, json_encode([
-                "action" => "add_coaster",
+                "action" => self::ACTION_ADD_COASTER,
                 "coasterId" => $coasterId,
             ]));
 
@@ -68,15 +76,15 @@ class Coaster extends Controller
     public function add(?int $coasterId = null): ResponseInterface
     {
         try {
-            if (!$this->predis->exists('coaster_' . $coasterId)) {
+            if (!$this->predis->exists('coaster:' . $coasterId)) {
                 return $this->failNotFound("Kolejka ID: $coasterId nie istnieje");
             }
 
             $data = $this->request->getJSON(true);
 
             $rule = [
-                'ilosc_miejsc' => 'required|integer',
-                'predkosc_wagonu' => 'required|numeric',
+                'ilosc_miejsc' => 'required|integer|greater_than[0]',
+                'predkosc_wagonu' => 'required|numeric|greater_than[0]',
             ];
 
             if (!$this->validateData($data, $rule)) {
@@ -89,19 +97,18 @@ class Coaster extends Controller
 
             $wagonId = $this->predis->get("wagonId");
 
-            $this->predis->hmset("wagon_" . $wagonId,  [
-                "id" => $wagonId,
-                "coasterId" => $coasterId,
-                "seats" => $data["ilosc_miejsc"],
-                "speed" => $data["predkosc_wagonu"],
-            ]);
-
-            $this->predis->sadd("coaster_" . $coasterId . "_wagons", $wagonId);
+            $this->predis->hset("coaster:" . $coasterId, "wagon_" . $wagonId,  json_encode(
+                [
+                    "id" => $wagonId,
+                    "capacity" => $data["ilosc_miejsc"],
+                    "speed" => $data["predkosc_wagonu"],
+                ]
+            ));
 
             $this->predis->incr("wagonId");
 
             $this->predis->publish("coasters_" . ENVIRONMENT, json_encode([
-                "action" => "add_wagon",
+                "action" => self::ACTION_ADD_WAGON,
                 "wagonId" => $wagonId,
             ]));
 
@@ -114,15 +121,15 @@ class Coaster extends Controller
     public function update(?int $coasterId = null): ResponseInterface
     {
         try {
-            if (!$this->predis->exists('coaster_' . $coasterId)) {
+            if (!$this->predis->exists('coaster:' . $coasterId)) {
                 return $this->failNotFound("Kolejka ID: $coasterId nie istnieje");
             }
 
             $data = $this->request->getJSON(true);
 
             $rule = [
-                'liczba_personelu' => 'required|integer',
-                'liczba_klientow' => 'required|integer',
+                'liczba_personelu' => 'required|integer|greater_than[0]',
+                'liczba_klientow' => 'required|integer|greater_than[0]',
                 'godziny_od' => 'required|string|regex_match[/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/]',
                 'godziny_do' => 'required|string|regex_match[/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/]',
             ];
@@ -131,7 +138,7 @@ class Coaster extends Controller
                 return $this->failValidationErrors($this->validator->getErrors());
             }
 
-            $this->predis->hmset("coaster_" . $coasterId, [
+            $this->predis->hmset("coaster:" . $coasterId, [
                 "staff" => $data["liczba_personelu"],
                 "customers" => $data["liczba_klientow"],
                 "from" => $data["godziny_od"],
@@ -139,7 +146,7 @@ class Coaster extends Controller
             ]);
 
             $this->predis->publish("coasters_" . ENVIRONMENT, json_encode([
-                "action" => "update_coaster",
+                "action" => self::ACTION_UPDATE_COASTER,
                 "coasterId" => $coasterId,
             ]));
 
@@ -152,24 +159,18 @@ class Coaster extends Controller
     public function delete(?int $coasterId = null, ?int $wagonId = null): ResponseInterface
     {
         try {
-            if (!$this->predis->exists('coaster_' . $coasterId)) {
+            if (!$this->predis->exists('coaster:' . $coasterId)) {
                 return $this->failNotFound("Kolejka ID: $coasterId nie istnieje");
             }
 
-            if (!$this->predis->exists('wagon_' . $wagonId)) {
-                return $this->failNotFound("Wagon ID: $wagonId nie istnieje");
+            if (!$this->predis->hget('coaster:' . $coasterId, 'wagon_' . $wagonId)) {
+                return $this->failNotFound("Wagon ID: $wagonId nie istnieje lub nie znajduje się w kolejce ID: $coasterId");
             }
 
-            if (0 === $this->predis->sismember("coaster_" . $coasterId . "_wagons", $wagonId)) {
-                return $this->failNotFound("Wagon ID: $wagonId nie znajduje się w kolejce ID: $coasterId");
-            }
-
-            $this->predis->srem("coaster_" . $coasterId . "_wagons", $wagonId);
-
-            $this->predis->del("wagon_" . $wagonId);
+            $this->predis->hdel("coaster:" . $coasterId, "wagon_" . $wagonId);
 
             $this->predis->publish("coasters_" . ENVIRONMENT, json_encode([
-                "action" => "delete_wagon",
+                "action" => self::ACTION_DELETE_WAGON,
                 "wagonId" => $wagonId,
             ]));
 
