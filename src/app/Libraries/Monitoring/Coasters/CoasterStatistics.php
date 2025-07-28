@@ -100,13 +100,23 @@ class CoasterStatistics
         $this->timeTo = new DateTime($data[11]);
         $this->setWagons($data);
         $this->availableWagons = count($this->wagons);
+        $this->setRequiredWagons();
+        $this->setRequiredStaff();
+
+        if (!empty($this->problems)) {
+            $this->log($this->name . " - Problem: " . implode(", ", $this->problems));
+        }
     }
 
     public function display(): void
     {
-        $this->setRequiredWagons();
-        $this->setRequiredStaff();
-        $this->show();
+        echo "[{$this->name}]" . PHP_EOL .
+            "Godziny działania: {$this->hours}" . PHP_EOL .
+            "Liczba wagonów: {$this->availableWagons}/{$this->requiredWagons}" . PHP_EOL .
+            "Dostępny personel: {$this->availableStaff}/{$this->requiredStaff}" . PHP_EOL .
+            "Klienci dziennie: {$this->customers}" . PHP_EOL .
+            (!empty($this->info) ? implode(", ", $this->info) : "") . PHP_EOL .
+            (!empty($this->problems) ? "Problem: " . implode(", ", $this->problems) : "Status: OK") . PHP_EOL . PHP_EOL;
     }
 
     private function setWagons(array $data): void
@@ -166,14 +176,15 @@ class CoasterStatistics
         }
     }
 
-    private function show()
+    private function log(string $message): void
     {
-        echo "[{$this->name}]" . PHP_EOL .
-            "Godziny działania: {$this->hours}" . PHP_EOL .
-            "Liczba wagonów: {$this->availableWagons}/{$this->requiredWagons}" . PHP_EOL .
-            "Dostępny personel: {$this->availableStaff}/{$this->requiredStaff}" . PHP_EOL .
-            "Klienci dziennie: {$this->customers}" . PHP_EOL .
-            (!empty($this->info) ? implode(", ", $this->info) : "") . PHP_EOL .
-            (!empty($this->problems) ? "Problem: " . implode(", ", $this->problems) : "Status: OK") . PHP_EOL . PHP_EOL;
+        // Logika do zapisywania problemów lub informacji do pliku
+        $file = '../writable/logs/coaster_statistics.log';
+
+        $fp = fopen($file, 'a');
+
+        fwrite($fp, "[" . date('Y-m-d H:i:s') . "] " . $message . PHP_EOL);
+
+        fclose($fp);
     }
 }
