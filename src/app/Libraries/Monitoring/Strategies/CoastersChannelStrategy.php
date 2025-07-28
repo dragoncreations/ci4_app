@@ -21,6 +21,7 @@ class CoastersChannelStrategy implements ChannelStrategy
     {
         if (in_array(json_decode($this->message, true)['action'], ['add_coaster', 'add_wagon', 'update_coaster', 'delete_wagon'])) {
             $this->redis->keys('coaster:*')->then(function (?array $coasters) {
+                echo "[Godzina " . date('H:i:s') . "]" . PHP_EOL;
                 $this->getCoastersData($coasters);
             }, function (Exception $e) {
                 echo 'Error: ' . $e->getMessage() . PHP_EOL;

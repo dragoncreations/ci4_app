@@ -174,6 +174,6 @@ class CoasterStatistics
             "Dostępny personel: {$this->availableStaff}/{$this->requiredStaff}" . PHP_EOL .
             "Klienci dziennie: {$this->customers}" . PHP_EOL .
             (!empty($this->info) ? implode(", ", $this->info) : "") . PHP_EOL .
-            (!empty($this->problems) ? implode(", ", $this->problems) : "Status: OK") . PHP_EOL . PHP_EOL;
+            (!empty($this->problems) ? "Problem: " . implode(", ", $this->problems) : "Status: OK") . PHP_EOL . PHP_EOL;
     }
 }
