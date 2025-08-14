@@ -7,20 +7,23 @@
 require __DIR__ . '/../vendor/autoload.php';
 
 use App\Libraries\Monitoring\Monitoring;
+use App\Libraries\Monitoring\Strategies\DataStore\RedisStrategy;
+
+$monitoring = new Monitoring();
+
+if ($argc >= 3) {
+    $strategy = new RedisStrategy($argv[1], $argv[2]);
+} elseif ($argc == 2) {
+    $strategy = new RedisStrategy($argv[1]);
+} else {
+    $strategy = new RedisStrategy();
+}
+
+$monitoring->setStrategy($strategy);
 
 try {
-    if ($argc >= 3) {
-        $monitoring = new Monitoring($argv[1], $argv[2]);
-    } elseif ($argc == 2) {
-        $monitoring = new Monitoring($argv[1]);
-    } else {
-        $monitoring = new Monitoring();
-    }
+    $monitoring->run();
 } catch (Exception $e) {
     echo 'Error: ' . $e->getMessage() . PHP_EOL;
     exit(1);
 }
-
-$monitoring->subscribe();
-$monitoring->display();
-$monitoring->unsubscribe();

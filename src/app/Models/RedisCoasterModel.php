@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Libraries\Monitoring\Strategies\DataStore\RedisStrategy;
+use App\Libraries\Monitoring\Strategies\RedisChannel\CoastersStrategy;
+use App\Libraries\Monitoring\Strategies\RedisChannel\RedisChannelStrategy;
 use CodeIgniter\Model;
 
 class RedisCoasterModel implements CoasterModelInterface
@@ -36,7 +39,7 @@ class RedisCoasterModel implements CoasterModelInterface
         $this->predis->incr("coasterId");
 
         $this->predis->publish("coasters_" . ENVIRONMENT, json_encode([
-            "action" => "add_coaster",
+            "action" => CoastersStrategy::ACTION_ADD_COASTER,
             "coasterId" => $coasterId,
         ]));
 
@@ -62,7 +65,7 @@ class RedisCoasterModel implements CoasterModelInterface
         $this->predis->incr("wagonId");
 
         $this->predis->publish("coasters_" . ENVIRONMENT, json_encode([
-            "action" => "add_wagon",
+            "action" => CoastersStrategy::ACTION_ADD_WAGON,
             "wagonId" => $wagonId,
         ]));
 
@@ -79,7 +82,7 @@ class RedisCoasterModel implements CoasterModelInterface
         ]);
 
         $this->predis->publish("coasters_" . ENVIRONMENT, json_encode([
-            "action" => "update_coaster",
+            "action" => CoastersStrategy::ACTION_UPDATE_COASTER,
             "coasterId" => $coasterId,
         ]));
     }
@@ -89,7 +92,7 @@ class RedisCoasterModel implements CoasterModelInterface
         $this->predis->hdel("coaster:" . $coasterId, "wagon_" . $wagonId);
 
         $this->predis->publish("coasters_" . ENVIRONMENT, json_encode([
-            "action" => "delete_wagon",
+            "action" => CoastersStrategy::ACTION_DELETE_WAGON,
             "wagonId" => $wagonId,
         ]));
     }

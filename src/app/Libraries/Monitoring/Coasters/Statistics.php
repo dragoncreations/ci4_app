@@ -4,7 +4,7 @@ namespace App\Libraries\Monitoring\Coasters;
 
 use DateTime;
 
-class CoasterStatistics
+class Statistics
 {
     private string $id;
 
@@ -102,10 +102,6 @@ class CoasterStatistics
         $this->availableWagons = count($this->wagons);
         $this->setRequiredWagons();
         $this->setRequiredStaff();
-
-        if (!empty($this->problems)) {
-            $this->log($this->name . " - Problem: " . implode(", ", $this->problems));
-        }
     }
 
     public function display(): void
@@ -117,6 +113,16 @@ class CoasterStatistics
             "Klienci dziennie: {$this->customers}" . PHP_EOL .
             (!empty($this->info) ? implode(", ", $this->info) : "") . PHP_EOL .
             (!empty($this->problems) ? "Problem: " . implode(", ", $this->problems) : "Status: OK") . PHP_EOL . PHP_EOL;
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    public function getProblems(): array
+    {
+        return $this->problems;
     }
 
     private function setWagons(array $data): void
@@ -174,17 +180,5 @@ class CoasterStatistics
         if ($this->requiredStaff > $this->availableStaff) {
             $this->problems[] = "Brakuje " . $this->requiredStaff - $this->availableStaff . " pracowników";
         }
-    }
-
-    private function log(string $message): void
-    {
-        // Logika do zapisywania problemów lub informacji do pliku
-        $file = '../writable/logs/coaster_statistics.log';
-
-        $fp = fopen($file, 'a');
-
-        fwrite($fp, "[" . date('Y-m-d H:i:s') . "] " . $message . PHP_EOL);
-
-        fclose($fp);
     }
 }
