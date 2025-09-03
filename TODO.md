@@ -130,12 +130,12 @@ nginx.
 
 Najważniejsze obszary wymagające poprawy:
 
-1. Reprezentacja danych: Dane nadal są przekazywane jako surowe tablice zamiast obiektów domenowych, co utrudnia czytelność i rozwój kodu.
+1. **Reprezentacja danych:** Dane nadal są przekazywane jako surowe tablice zamiast obiektów domenowych, co utrudnia czytelność i rozwój kodu.
 
-2. Nieprawidłowe użycie modeli: RedisCoasterModel pełni funkcję adaptera do bazy danych, zamiast być prawdziwym modelem domenowym reprezentującym encję biznesową.
+2. **Nieprawidłowe użycie modeli:** RedisCoasterModel pełni funkcję adaptera do bazy danych, zamiast być prawdziwym modelem domenowym reprezentującym encję biznesową.
 
-3. Zasada Single Responsibility: Klasa CoastersStrategy ma zbyt wiele odpowiedzialności (dostęp do danych, logika biznesowa, prezentacja i logowanie). Taki kod staje się trudny w utrzymaniu i rozwoju.
+3. **Zasada Single Responsibility:** Klasa CoastersStrategy ma zbyt wiele odpowiedzialności (dostęp do danych, logika biznesowa, prezentacja i logowanie). Taki kod staje się trudny w utrzymaniu i rozwoju.
 
-4. Numerowanie pól w tablicach: W konstruktorze wykorzystywane są numeryczne indeksy tablic, przez co kod jest nieczytelny i wymaga znajomości szczegółów implementacji, aby zrozumieć jego działanie.
+4. **Numerowanie pól w tablicach:** W konstruktorze wykorzystywane są numeryczne indeksy tablic, przez co kod jest nieczytelny i wymaga znajomości szczegółów implementacji, aby zrozumieć jego działanie.
 
-5. Testowalność: Obecna struktura utrudnia pisanie testów jednostkowych. Aby zweryfikować poprawność obliczeń, trzeba przygotować całą tablicę z magicznymi indeksami i wywołać konstruktor, który robi znacznie więcej niż same obliczenia. To uniemożliwia testowanie logiki w izolacji - każda zmiana formatu danych psuje wszystkie testy.
+5. **Testowalność:** Obecna struktura utrudnia pisanie testów jednostkowych. Aby zweryfikować poprawność obliczeń, trzeba przygotować całą tablicę z magicznymi indeksami i wywołać konstruktor, który robi znacznie więcej niż same obliczenia. To uniemożliwia testowanie logiki w izolacji - każda zmiana formatu danych psuje wszystkie testy.
