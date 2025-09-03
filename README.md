@@ -1,6 +1,8 @@
 # Projekt API dla "Systemu kolejek górskich"
 
-Ścieka do pliku serwisu monitorującego
+Zadanie rekrutacyjne
+
+Ścieżka do pliku serwisu monitorującego
 
 ```
 src/public/cli.php
